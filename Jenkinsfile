@@ -30,21 +30,22 @@ pipeline {
                 }
             }
         }
+
+        stage('Debug Branch') {
+            steps {
+                sh 'git branch'
+                sh 'pwd'
+                sh 'ls -la'
+            }
+        }
     }
 
     post {
-
         success {
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: 'good',
-                message: """
-Build Successful
-
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-URL: ${env.BUILD_URL}
-"""
+                message: "Build Successful: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
             )
         }
 
@@ -52,13 +53,7 @@ URL: ${env.BUILD_URL}
             slackSend(
                 channel: "${SLACK_CHANNEL}",
                 color: 'danger',
-                message: """
-Build Failed
-
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-URL: ${env.BUILD_URL}
-"""
+                message: "Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
             )
         }
 
