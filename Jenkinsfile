@@ -1,72 +1,69 @@
-node {
+pipeline {
+    agent any
 
-    /* -------------------------------
-       Global Variables
-    --------------------------------*/
+    environment {
+        GIT_REPO      = "https://github.com/mukeshdevelp/ot-microservice-sarthi.git"
+        GIT_BRANCH    = "backend"
+        PROJECT_DIR   = "salary/salary-api"
+        MAVEN_TOOL    = "Maven3"
+        SLACK_CHANNEL = "#ci-operation-notifications"
+    }
 
-    def GIT_REPO    = "https://github.com/mukeshdevelp/ot-microservice-sarthi.git"
-    def GIT_BRANCH  = "backend"
-    def PROJECT_DIR = "salary/salary-api"
+    tools {
+        maven "${MAVEN_TOOL}"
+    }
 
-    def MAVEN_TOOL  = "Maven3"
-    def SLACK_CHANNEL = "#ci-operation-notifications"
-
-    def mvnHome
-
-    try {
+    stages {
 
         stage('Checkout Code') {
-            git url: GIT_REPO, branch: GIT_BRANCH
-        }
-
-        stage('Initialize Tools') {
-            mvnHome = tool MAVEN_TOOL
-        }
-
-        stage('Unit Testing') {
-            dir(PROJECT_DIR) {
-                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    sh "${mvnHome}/bin/mvn test"
-                }
+            steps {
+                git url: "${GIT_REPO}", branch: "${GIT_BRANCH}"
             }
         }
 
-        echo "Unit Testing completed."
+        stage('Unit Testing') {
+            steps {
+                dir("${PROJECT_DIR}") {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                        sh "mvn test"
+                    }
+                }
+            }
+        }
+    }
 
-        /* -------- SUCCESS NOTIFICATION -------- */
-        slackSend(
-            channel: SLACK_CHANNEL,
-            color: 'good',
-            message: """
+    post {
+
+        success {
+            slackSend(
+                channel: "${SLACK_CHANNEL}",
+                color: 'good',
+                message: """
 Build Successful
 
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 URL: ${env.BUILD_URL}
 """
-        )
+            )
+        }
 
-    } catch (err) {
-
-        /* -------- FAILURE NOTIFICATION -------- */
-        slackSend(
-            channel: SLACK_CHANNEL,
-            color: 'danger',
-            message: """
+        failure {
+            slackSend(
+                channel: "${SLACK_CHANNEL}",
+                color: 'danger',
+                message: """
 Build Failed
 
 Job: ${env.JOB_NAME}
 Build: #${env.BUILD_NUMBER}
 URL: ${env.BUILD_URL}
 """
-        )
+            )
+        }
 
-        error "Pipeline failed: ${err}"
-
-    } finally {
-
-        /* -------- POST ACTION -------- */
-        archiveArtifacts artifacts: '**/reports/*', fingerprint: true
-
+        always {
+            archiveArtifacts artifacts: '**/reports/*', fingerprint: true
+        }
     }
 }
