@@ -35,8 +35,15 @@ pipeline {
             steps {
                 dir("${PROJECT_DIR}") {
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        sh "mvn test"
+                        sh "mvn clean test"
                     }
+                }
+            }
+
+            post {
+                always {
+                    //  Publish JUnit Reports
+                    junit '**/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -87,7 +94,7 @@ URL: ${env.BUILD_URL}
         }
 
         always {
-            archiveArtifacts artifacts: '**/reports/*', fingerprint: true
+            archiveArtifacts artifacts: '**/target/surefire-reports/*.xml', allowEmptyArchive: true
             cleanWs()
             echo "Workspace cleaned"
         }
